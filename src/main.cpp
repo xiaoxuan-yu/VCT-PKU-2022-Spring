@@ -15,12 +15,13 @@ bool firstMouse = true;
 float lastX = (float)SCR_WIDTH / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 
-bool mouseCursor = false;
-bool controlPressed = false;
+bool mouseCursor = true;
 Camera camera(glm::vec3(0.0f, 4.0f, 0.0f));
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWInput input);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 int main()
 {
@@ -30,6 +31,8 @@ int main()
     GLFWInput InputController;
     InputController.bindInputtoWindow(m_window);
     renderer.init(&camera);
+    glfwSetFramebufferSizeCallback(m_window.getGLFWwindow(), framebuffer_size_callback);
+    glfwSetScrollCallback(m_window.getGLFWwindow(), scroll_callback);
 
     while (!glfwWindowShouldClose(m_window.getGLFWwindow())) {
 
@@ -38,7 +41,10 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        glfwGetWindowSize(m_window.getGLFWwindow(), &SCR_WIDTH, &SCR_HEIGHT);
+        m_window.updateWindowSize(SCR_WIDTH, SCR_HEIGHT);
         processInput(InputController);
+
         renderer.update(deltaTime);
 
         m_window.swapBuffers();
@@ -94,4 +100,12 @@ void processInput(GLFWInput input)
     }
     glfwSetCursorPosCallback(input.getBoundWindow(), mouse_callback);
     glfwSetInputMode(input.getBoundWindow(), GLFW_CURSOR, mouseCursor ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+}
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(yoffset);
 }

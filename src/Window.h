@@ -59,6 +59,11 @@ public:
         }
     }
 
+    void updateWindowSize(int width, int height) {
+        m_width = width;
+        m_height = height;
+    }
+
 private:
 
     void initialize()
@@ -68,7 +73,7 @@ private:
         }
 
         glfwDefaultWindowHints();
-        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+        //glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
         m_window = glfwCreateWindow(m_width, m_height, m_windowName.c_str(), m_fullscreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 
