@@ -17,6 +17,7 @@ float lastY = (float)SCR_HEIGHT / 2.0;
 
 bool mouseCursor = true;
 Camera camera(glm::vec3(0.0f, 4.0f, 0.0f));
+Light light;
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWInput input);
@@ -30,7 +31,7 @@ int main()
     VCTRenderer renderer(&m_window);
     GLFWInput InputController;
     InputController.bindInputtoWindow(m_window);
-    renderer.init(&camera);
+    renderer.init(&camera, &light);
     glfwSetFramebufferSizeCallback(m_window.getGLFWwindow(), framebuffer_size_callback);
     glfwSetScrollCallback(m_window.getGLFWwindow(), scroll_callback);
 
@@ -43,9 +44,10 @@ int main()
 
         glfwGetWindowSize(m_window.getGLFWwindow(), &SCR_WIDTH, &SCR_HEIGHT);
         m_window.updateWindowSize(SCR_WIDTH, SCR_HEIGHT);
+        renderer.updateWindowSize(SCR_WIDTH, SCR_HEIGHT);
         processInput(InputController);
 
-        renderer.update(deltaTime);
+        renderer.render(deltaTime);
 
         m_window.swapBuffers();
     }

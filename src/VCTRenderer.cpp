@@ -12,7 +12,7 @@ VCTRenderer::~VCTRenderer()
 	delete model;
 }
 
-bool VCTRenderer::init(Camera *mCamera) {
+bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 	std::cout << "Initializing VCT Render" << std::endl;
 	//imgui init
 	std::cout << "Loading UI ..." << std::endl;
@@ -24,17 +24,49 @@ bool VCTRenderer::init(Camera *mCamera) {
 	ImGui_ImplOpenGL3_Init("#version 450");
 
 	camera = mCamera;
+	light = mLight;
 
 	// load Shaders
 	tracingShader = new Shader("shader/naiveShader.vs", "shader/naiveShader.fs");
 	voxelizationShader = new Shader("shader/voxelization.vs", "shader/voxelization.gs", "shader/voxelization.fs");
+	shadowShader = new Shader("shader/shadow_map.vs", "shader/shadow_map.fs");
 
 	//load model
 	std::cout << "Loading models..." << std::endl;
 	model = new Model("data/sponza.obj");
 	std::cout << "Model loaded." << std::endl;
 
-	glEnable(GL_TEXTURE_3D);//enable 3D texture
+	
+	//frame buffer for depthTexture and shadow_map
+	glGenFramebuffers(1, &depthFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthFramebuffer);
+
+	//render from light source
+	glm::mat4 viewMatrix = glm::lookAt(light->lightPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	glm::mat4 projectionMatrix = glm::ortho(-120.f, 120.f, -120.f, 120.f, -100.f, 100.f);
+	depthViewProjectionMatrix = projectionMatrix * viewMatrix;
+
+	//generate depth texture
+	glGenTextures(1, &depthTexture);
+	glBindTexture(GL_TEXTURE_2D, depthTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadowMapRes,
+		shadowMapRes, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
+	glDrawBuffer(GL_NONE); // do not render color
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Error creating depth buffer" << std::endl;
+		return false;
+	}
+
+
+	//3D texture for VoxelTexture
+	glGenVertexArrays(1, &texture3DVertexArray);
+	glEnable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, voxelTexture);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -47,10 +79,25 @@ bool VCTRenderer::init(Camera *mCamera) {
 
 	delete[] data;	//release memory
 
+	glGenerateMipmap(GL_TEXTURE_3D);
+
+	//projection
+	float size = GridWorldSize_;
+	projectionMatrix = glm::ortho(-size * 0.5f, size * 0.5f, -size * 0.5f, size * 0.5f, size * 0.5f, size * 1.5f);
+	projectionX = projectionMatrix * glm::lookAt(glm::vec3(size, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	projectionY = projectionMatrix * glm::lookAt(glm::vec3(0, size, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, -1));
+	projectionZ = projectionMatrix * glm::lookAt(glm::vec3(0, 0, size), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+
+	//FBO unbound
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//render depth texture and voxel texture
+	CalcDepthTexture();
+	CalcVoxelTexture();
 	return true;
 }
 
-void VCTRenderer::update(float deltaTime)
+void VCTRenderer::render(float deltaTime)
 {
 	//updateKeyPress();
 	
@@ -77,6 +124,30 @@ void VCTRenderer::update(float deltaTime)
 
 	model->Draw(*tracingShader);
 }
+
+void VCTRenderer::voxel_visualize(float deltaTime) {
+
+}
+
+void VCTRenderer::CalcDepthTexture() {
+	//enable face culling and depth test in order to accelerate rendering
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, depthFramebuffer);
+	glViewport(0, 0, shadowMapRes, shadowMapRes);
+	glClearColor(0, 0, 0, 1);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//Write Depth information into depthFramebuffer
+	shadowShader->use();
+	glm::mat4 modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.05f)), glm::vec3(0.0f, 0.0f, 0.0f));
+	shadowShader->setMat4("ModelViewProjectionMatrix", depthViewProjectionMatrix * modelMatrix);
+	model->Draw(*shadowShader);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);	//FBO unbound
+	glViewport(0, 0, scrWidth, scrHeight);
+}
+
 void VCTRenderer::CalcVoxelTexture() {
 	//disable face culling and depth test to render all triangle faces
 	glDisable(GL_CULL_FACE);
@@ -90,10 +161,17 @@ void VCTRenderer::CalcVoxelTexture() {
 
 	//enable voxelization shader
 	voxelizationShader->use();
+
 	//bind Projection matrixs
 	voxelizationShader->setMat4("ProjectionX", projectionX);
 	voxelizationShader->setMat4("ProjectionY", projectionY);
 	voxelizationShader->setMat4("ProjectionZ", projectionZ);
+
+	//bind Depth Texture
+	glActiveTexture(GL_TEXTURE0 + 5);
+	glBindTexture(GL_TEXTURE_2D, depthTexture);
+	voxelizationShader->setInt("ShadowMap", 5);
+
 	//set voxel resolution
 	voxelizationShader->setInt("VoxelDimensions", voxelDimensions_);
 	//bind voxelTexture
@@ -102,5 +180,16 @@ void VCTRenderer::CalcVoxelTexture() {
 
 	//model matrix
 	glm::mat4 modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.05f)), glm::vec3(0.0f, 0.0f, 0.0f));
+	
+	//Bind matrices
+	voxelizationShader->setMat4("ModelMatrix", modelMatrix);
+	voxelizationShader->setMat4("DepthModelViewProjectionMatrix", depthViewProjectionMatrix * modelMatrix);
+	voxelizationShader->setInt("shadowMapRes", shadowMapRes);
 
+	//render voxel texture
+	model->Draw(*voxelizationShader);
+	glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_3D, voxelTexture);
+	glGenerateMipmap(GL_TEXTURE_3D);
+	glViewport(0, 0, scrWidth, scrHeight);
 }

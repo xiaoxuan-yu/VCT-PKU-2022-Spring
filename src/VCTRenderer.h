@@ -32,20 +32,35 @@ public:
 
 	int scrWidth, scrHeight;
 	int voxelDimensions_ = 256;
-	int shadowMapRes;
+	const float GridWorldSize_ = 160.0f;
+	int shadowMapRes = 2048;
+
 	glm::mat4 projectionX, projectionY, projectionZ;
+	glm::mat4 depthViewProjectionMatrix;
 
 	GLuint voxelTexture;
+	GLuint texture3DVertexArray;
+	GLuint depthFramebuffer;
+	GLuint depthTexture;
 
 	Shader* tracingShader;
 	Shader* voxelizationShader;
+	Shader* shadowShader;
+	Shader* voxelvisualizeShader;
+
 	VCTRenderer(GLFWWindow* aWindow);
 	~VCTRenderer();
-	bool init(Camera *mCamera);
-	void update(float deltaTime);
-	void CalcVoxelTexture();
+	bool init(Camera *mCamera, Light *mLight);
+	void render(float deltaTime);
+	void voxel_visualize(float deltaTime);
+	void updateWindowSize(int width, int height) {
+		scrWidth = width;
+		scrHeight = height;
+	}
+	
 
 private:
-
+	void CalcVoxelTexture();
+	void CalcDepthTexture();
 };
 
