@@ -31,8 +31,10 @@ public:
 	Model* model;
 
 	int scrWidth, scrHeight;
+	int voxelDimensions_ = 256;
 
 	Shader* stdShader;
+	Shader* voxelizationShader;
 	VCTRenderer(GLFWWindow* aWindow);
 	~VCTRenderer();
 	bool init(Camera *mCamera);

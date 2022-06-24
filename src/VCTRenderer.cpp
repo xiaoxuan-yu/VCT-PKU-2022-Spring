@@ -27,6 +27,7 @@ bool VCTRenderer::init(Camera *mCamera) {
 
 	// load Shaders
 	stdShader = new Shader("shader/naiveShader.vs", "shader/naiveShader.fs");
+	voxelizationShader = new Shader("shader/voxelization.vs", "shader/voxelization.gs", "shader/voxelization.fs");
 
 	//load model
 	std::cout << "Loading models..." << std::endl;
