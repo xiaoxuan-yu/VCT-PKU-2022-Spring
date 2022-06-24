@@ -32,13 +32,18 @@ public:
 
 	int scrWidth, scrHeight;
 	int voxelDimensions_ = 256;
+	int shadowMapRes;
+	glm::mat4 projectionX, projectionY, projectionZ;
 
-	Shader* stdShader;
+	GLuint voxelTexture;
+
+	Shader* tracingShader;
 	Shader* voxelizationShader;
 	VCTRenderer(GLFWWindow* aWindow);
 	~VCTRenderer();
 	bool init(Camera *mCamera);
 	void update(float deltaTime);
+	void CalcVoxelTexture();
 
 private:
 
