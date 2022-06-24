@@ -12,6 +12,9 @@ public:
 	void bindInputtoWindow(const GLFWWindow& window) {
 		m_window = window.getGLFWwindow();
 	}
+    GLFWwindow* getBoundWindow() {
+        return m_window;
+    }
 
 	void updateInput() {
 		double x, y;
@@ -27,6 +30,10 @@ public:
 	{
 		return (glfwGetKey(m_window, GLFW_Key) == GLFW_PRESS);
 	}
+    bool isKeyReleased(unsigned int GLFW_Key) const
+    {
+        return (glfwGetKey(m_window, GLFW_Key) == GLFW_RELEASE);
+    }
 
 	bool isMouseButtonPressed(unsigned int GLFW_MouseButton) const
 	{
