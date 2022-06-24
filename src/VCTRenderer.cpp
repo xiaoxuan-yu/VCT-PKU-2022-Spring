@@ -55,5 +55,8 @@ void VCTRenderer::update(float deltaTime)
 	stdShader->setMat4("projection", projectionMatrix);
 	stdShader->setMat4("view", viewMatrix);
 
+	glm::mat4 modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.05f)), glm::vec3(0.0f, 0.0f, 0.0f));
+	stdShader->setMat4("model", modelMatrix);
+
 	model->Draw(*stdShader);
 }
