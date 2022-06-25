@@ -42,10 +42,10 @@ int selectViewProject()
 
 void main() {
 	projectIndex = selectViewProject();
-	mat4 projectionMatrix = projectIndex == 1 ? ProjX : projectIndex == 2 ? ProjY : ProjZ;
-	TexCoord = texCoord;
-	DepthCoord = depthCoord;
+	mat4 projectionMatrix = projectIndex == 1 ? ProjectionX : projectIndex == 2 ? ProjectionY : ProjectionZ;
 	for (int i = 0; i < gl_in.length(); i++) {
+		TexCoord = vertices[i].texCoord;
+		DepthCoord = vertices[i].depthCoord;
 		gl_Position = projectionMatrix * gl_in[i].gl_Position;  //Projection
 		EmitVertex();
 	}

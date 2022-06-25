@@ -5,7 +5,7 @@ uniform sampler2D ShadowMap;
 uniform int shadowMapRes;
 
 uniform int VoxelDimensions;
-uniform layout(RGBA8) image3D VoxelTexture;
+uniform layout(rgba8) image3D VoxelTexture;
 
 in GeometryOut{
 	vec2 TexCoord;
@@ -13,10 +13,12 @@ in GeometryOut{
 	vec4 DepthCoord; //do not change in gs
 } frag;
 
-float ShadowMap(float bias)
+out vec4 fs_color;
+
+float ShadowMapping(float bias)
 {
 
-	float current_depth = gs.DepthCoord.z / gs.DepthCoord.w;
+	float current_depth = frag.DepthCoord.z / frag.DepthCoord.w;
 
 	float shadow = 0.0f;
 	int radius = 2;
@@ -26,8 +28,8 @@ float ShadowMap(float bias)
 	{
 		for (int y = -radius; y <= radius; ++y)
 		{
-			vec2 offset = vec2(1.0f / ShadowMapSize * x, 1.0f / ShadowMapSize * y);
-			float closest_depth = texture(ShadowMap, vec2(gs.DepthCoord.xy + offset)).r;
+			vec2 offset = vec2(1.0f / shadowMapRes * x, 1.0f / shadowMapRes * y);
+			float closest_depth = texture(ShadowMap, vec2(frag.DepthCoord.xy + offset)).r;
 
 			//use bias for antialiasing
 			if (current_depth - bias <= closest_depth)
@@ -60,5 +62,5 @@ void main() {
 		voxelPos = camPos;
 		voxelPos.z = VoxelDimensions - 1 - camPos.z;
 	}
-	imageStore(VoxelTexture, voxelPos, vec4(color.rgb * ShadowMap(0.002), 1.0));
+	imageStore(VoxelTexture, voxelPos, vec4(color.rgb * ShadowMapping(0.002), 1.0));
 }
