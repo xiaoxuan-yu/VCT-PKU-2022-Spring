@@ -42,17 +42,11 @@ public:
 	GLuint texture3DVertexArray;
 	GLuint depthFramebuffer;
 	GLuint depthTexture;
-	GLuint frontFramebuffer;
-	GLuint frontTexture;
-	GLuint backFramebuffer;
-	GLuint backTexture;
 
 	Shader* tracingShader;
 	Shader* voxelizationShader;
 	Shader* shadowShader;
 	Shader* voxelvisualizeShader;
-	Shader* worldPosShader;
-
 	VCTRenderer(GLFWWindow* aWindow);
 	~VCTRenderer();
 	bool init(Camera *mCamera, Light *mLight);
