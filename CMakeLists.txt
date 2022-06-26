@@ -4,6 +4,7 @@
 cmake_minimum_required (VERSION 3.8)
 
 project ("VCT")
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR})
 
 # 包含子项目。
 add_subdirectory ("src")
