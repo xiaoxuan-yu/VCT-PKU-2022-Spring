@@ -1,11 +1,11 @@
-#version 450 core
+#version 450
 uniform sampler2D DiffuseTexture;
 
 uniform sampler2D ShadowMap;
 uniform int shadowMapRes;
 
 uniform int VoxelDimensions;
-uniform layout(rgba8) image3D VoxelTexture;
+uniform layout(RGBA8) image3D VoxelTexture;
 
 in GeometryOut{
 	vec2 TexCoord;
@@ -13,7 +13,6 @@ in GeometryOut{
 	vec4 DepthCoord; //do not change in gs
 } frag;
 
-out vec4 fs_color;
 
 float ShadowMapping(float bias)
 {

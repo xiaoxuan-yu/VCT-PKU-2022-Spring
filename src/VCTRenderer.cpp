@@ -28,15 +28,17 @@ bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 
 	// load Shaders
 	tracingShader = new Shader("shader/naiveShader.vs", "shader/naiveShader.fs");
-	voxelizationShader = new Shader("shader/voxelization.vs", "shader/voxelization.gs", "shader/voxelization.fs");
+	voxelizationShader = new Shader("shader/voxelization.vs", "shader/voxelization.fs", "shader/voxelization.gs");
 	shadowShader = new Shader("shader/shadow_map.vs", "shader/shadow_map.fs");
+	worldPosShader = new Shader("shader/world_position.vs", "shader/world_position.fs");
+	voxelvisualizeShader = new Shader("shader/voxelization_visualizer.vs", "shader/voxelization_visualizer.fs");
 
 	//load model
 	std::cout << "Loading models..." << std::endl;
 	model = new Model("data/sponza.obj");
 	std::cout << "Model loaded." << std::endl;
 
-	
+	glGenVertexArrays(1, &texture3DVertexArray);
 	//frame buffer for depthTexture and shadow_map
 	glGenFramebuffers(1, &depthFramebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, depthFramebuffer);
@@ -65,8 +67,8 @@ bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 
 
 	//3D texture for VoxelTexture
-	glGenVertexArrays(1, &texture3DVertexArray);
 	glEnable(GL_TEXTURE_3D);
+	glGenTextures(1, &voxelTexture);
 	glBindTexture(GL_TEXTURE_3D, voxelTexture);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -94,6 +96,7 @@ bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 	//render depth texture and voxel texture
 	CalcDepthTexture();
 	CalcVoxelTexture();
+
 	return true;
 }
 
@@ -127,6 +130,87 @@ void VCTRenderer::render(float deltaTime)
 
 void VCTRenderer::voxel_visualize(float deltaTime) {
 
+	glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
+	glDisable(GLAD_GL_NV_conservative_raster);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	//prepare matrices
+	glm::mat4 viewMatrix = camera->GetViewMatrix();
+	glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera->Zoom), (float)scrWidth / (float)scrHeight, 0.1f, 1000.0f);
+	glm::mat4 modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.05f)), glm::vec3(0.0f, 0.0f, 0.0f));
+	
+	//enable voxel_visualize shader
+	worldPosShader->use();
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	
+	//enable face culling and depth test
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+
+	//bind matrices
+	worldPosShader->setMat4("M", modelMatrix);
+	worldPosShader->setMat4("V", viewMatrix);
+	worldPosShader->setMat4("P", projectionMatrix);
+
+	//Front
+	glGenFramebuffers(1, &frontFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, frontFramebuffer);
+	glGenTextures(1, &frontTexture);
+	glBindTexture(GL_TEXTURE_2D, frontTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, scrWidth,
+		scrHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, frontTexture, 0);
+	glCullFace(GL_BACK);
+	glViewport(0, 0, scrWidth, scrHeight);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	model->Draw(*worldPosShader);
+
+	//Back
+	glGenFramebuffers(1, &backFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, backFramebuffer);
+	glGenTextures(1, &backTexture);
+	glBindTexture(GL_TEXTURE_2D, backTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, scrWidth,
+		scrHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, backTexture, 0);
+	glCullFace(GL_FRONT);
+	glViewport(0, 0, scrWidth, scrHeight);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	model->Draw(*worldPosShader);
+
+	//render 3D Texture
+	voxelvisualizeShader->use();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glBindTexture(GL_TEXTURE_2D, frontTexture);
+	voxelvisualizeShader->setInt("textureFront", 2);
+
+	glActiveTexture(GL_TEXTURE0 + 3);
+	glBindTexture(GL_TEXTURE_2D, backTexture);
+	voxelvisualizeShader->setInt("textureBack", 3);
+
+	glActiveTexture(GL_TEXTURE0 + 6);
+	glBindTexture(GL_TEXTURE_3D, voxelTexture);
+	voxelvisualizeShader->setInt("texture3D", 6);
+
+	voxelvisualizeShader->setVec3("cameraPosition", camera->Position);
+
+	glViewport(0, 0, scrWidth, scrHeight);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	model->Draw(*voxelvisualizeShader);
 }
 
 void VCTRenderer::CalcDepthTexture() {

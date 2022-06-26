@@ -21,7 +21,7 @@ int selectViewProject()
 {
 	vec3 p1 = gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz;
 	vec3 p2 = gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz;
-	vec3 faceNormal = cross(p1, p2);
+	vec3 faceNormal = normalize(cross(p1, p2));
 	float nDX = abs(faceNormal.x);
 	float nDY = abs(faceNormal.y);
 	float nDZ = abs(faceNormal.z);
