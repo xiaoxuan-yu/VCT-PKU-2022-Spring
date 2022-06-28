@@ -32,18 +32,6 @@ out vec4 frag_color;
 const float MAX_DIST = 75.0;  //max dist
 const float ALPHA_THRESH = 0.95; 
 
-
-
-//sampleOffsetDirections
-vec3 sampleOffsetDirections[20] = vec3[]
-(
-   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
-   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
-   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
-   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
-   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
-);
-
 //Cone
 const int NUM_CONES = 6; // 60 degrees
 float coneWeights[6] = float[](0.25, 0.15, 0.15, 0.15, 0.15, 0.15);//Cone Weights
@@ -112,16 +100,24 @@ float countShadow(float bias)
     float currentDepth = length(fragToLight);
 
 	float shadow = 0.0;
-	int samples = 20;
-	float diskRadius = 0.05;
-	for(int i = 0; i < samples; ++i)
-	{
-		float closestDepth = texture(ShadowMap, fragToLight + sampleOffsetDirections[i] * diskRadius).r;
-		closestDepth *= far_plane;   // Undo mapping [0,1]
-		if(currentDepth - bias > closestDepth)
-			shadow += 1.0;
-	}
-	shadow /= float(samples);
+    float samples = 4.0;
+    float offset = 0.1;
+    for(float x = -offset; x < offset; x += offset / (samples * 0.5))
+    {
+        for(float y = -offset; y < offset; y += offset / (samples * 0.5))
+        {
+            for(float z = -offset; z < offset; z += offset / (samples * 0.5))
+            {
+                float closestDepth = texture(ShadowMap, fragToLight + vec3(x, y, z)).r; 
+                closestDepth *= far_plane;   // Undo mapping [0,1]
+                if(currentDepth - bias > closestDepth)
+                    shadow += 0.0;
+                else
+                    shadow += 1.0;
+            }
+        }
+    }
+    shadow /= (samples * samples * samples);
 
 	return shadow;
 }
@@ -136,14 +132,14 @@ void main() {
     }//不渲染透明物体
 
     //TBN矩阵
-    TBN = inverse(transpose(mat3(WorldTangent,WorldBitangent, WorldNormal)));
+    TBN = inverse(transpose(mat3(WorldTangent, WorldBitangent, WorldNormal)));
 
     vec3 N = calcBumpNormal();//从高度贴图计算法向量
-    vec3 L = normalize(WorldPosition-LightPos); //光源方向
+    vec3 L = normalize(LightPos - WorldPosition); //光源方向
     vec3 E = normalize(WorldLookAtDir);//相机相对方向
    
-       // 计算可见度
-       float visibility = countShadow(0.002);
+    // 计算可见度
+    float visibility = countShadow(0.002);
 
 //计算漫反射光
     vec3 diffuseReflection;
@@ -163,7 +159,7 @@ void main() {
         indirectDiffuseLight = indirectDiffuseLight;
 
         // 漫反射求和
-        diffuseReflection =  (directDiffuseLight +    occlusion * indirectDiffuseLight.rgb ) * materialColor.rgb;
+        diffuseReflection =  (directDiffuseLight + occlusion * indirectDiffuseLight.rgb ) * materialColor.rgb;
     }
     
     // 计算镜面反射光
@@ -174,7 +170,7 @@ void main() {
 
         //直接镜面反射
         vec3 reflectDir = normalize(reflect(-L, N));  
-        float spec = pow(max(dot(E, reflectDir), 0.0),Shininess);
+        float spec = pow(max(dot(E, reflectDir), 0.0), Shininess);
         vec3 directSpecularLight = vec3 (spec * visibility); 
         directSpecularLight = directSpecularLight;
        

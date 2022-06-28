@@ -6,7 +6,7 @@ class Light
 public:
 	int light_type = 0;
 	glm::vec3 lightColor = glm::vec3(0.0f);
-	glm::vec3 lightPos = glm::vec3(2.0f, 4.0f, 2.0f);
+	glm::vec3 lightPos = glm::vec3(0.0f, 8.0f, 0.0f);
 	void Light::setColor(glm::vec3 Color)
 	{
 		lightColor = Color;
