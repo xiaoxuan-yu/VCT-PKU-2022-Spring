@@ -1,8 +1,9 @@
 #version 450
 uniform sampler2D DiffuseTexture;
 
-uniform sampler2D ShadowMap;
-uniform int shadowMapRes;
+uniform samplerCube ShadowMap;
+uniform vec3 lightPos;
+uniform float far_plane;
 
 uniform int VoxelDimensions;
 uniform layout(RGBA8) image3D VoxelTexture;
@@ -10,33 +11,37 @@ uniform layout(RGBA8) image3D VoxelTexture;
 in GeometryOut{
 	vec2 TexCoord;
 	flat int projectIndex;
-	vec4 DepthCoord; //do not change in gs
+	vec3 FragPos;
 } frag;
 
+
+vec3 sampleOffsetDirections[20] = vec3[]
+(
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+);
 
 float ShadowMapping(float bias)
 {
 
-	float current_depth = frag.DepthCoord.z / frag.DepthCoord.w;
+	vec3 fragToLight = frag.FragPos - lightPos;
+	float currentDepth = length(fragToLight);
 
-	float shadow = 0.0f;
-	int radius = 2;
-
-	//PCF Algorithm, 3x3 sampling space
-	for (int x = -radius; x <= radius; ++x)
+	float shadow = 0.0;
+	int samples = 20;
+	float diskRadius = 0.05;
+	for(int i = 0; i < samples; ++i)
 	{
-		for (int y = -radius; y <= radius; ++y)
-		{
-			vec2 offset = vec2(1.0f / shadowMapRes * x, 1.0f / shadowMapRes * y);
-			float closest_depth = texture(ShadowMap, vec2(frag.DepthCoord.xy + offset)).r;
-
-			//use bias for antialiasing
-			if (current_depth - bias <= closest_depth)
-				shadow += 1.0f;
-		}
+		float closestDepth = texture(ShadowMap, fragToLight + sampleOffsetDirections[i] * diskRadius).r;
+		closestDepth *= far_plane;   // Undo mapping [0,1]
+		if(currentDepth - bias > closestDepth)
+			shadow += 1.0;
 	}
+	shadow /= float(samples);
 
-	shadow /= (2 * radius + 1) * (2 * radius + 1);
 	return shadow;
 }
 

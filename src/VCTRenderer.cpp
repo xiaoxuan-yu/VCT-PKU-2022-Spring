@@ -27,10 +27,11 @@ bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 	light = mLight;
 
 	// load Shaders
-	tracingShader = new Shader("shader/naiveShader.vs", "shader/naiveShader.fs");
+	tracingShader = new Shader("shader/tracingShader.vs", "shader/tracingShader.fs");
 	voxelizationShader = new Shader("shader/voxelization.vs", "shader/voxelization.fs", "shader/voxelization.gs");
-	shadowShader = new Shader("shader/shadow_map.vs", "shader/shadow_map.fs");
+	shadowShader = new Shader("shader/shadow_map.vs", "shader/shadow_map.fs", "shader/shadow_map.gs");
 	voxelvisualizeShader = new Shader("shader/voxelization_visualizer.vs", "shader/voxelization_visualizer.fs");
+	depthvisualizeShader = new Shader("shader/depth_visualize.vs", "shader/depth_visualize.fs");
 
 	//load model
 	std::cout << "Loading models..." << std::endl;
@@ -42,20 +43,16 @@ bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 	glGenFramebuffers(1, &depthFramebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, depthFramebuffer);
 
-	//render from light source
-	glm::mat4 viewMatrix = glm::lookAt(light->lightPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-	glm::mat4 projectionMatrix = glm::ortho(-120.f, 120.f, -120.f, 120.f, -100.f, 100.f);
-	depthViewProjectionMatrix = projectionMatrix * viewMatrix;
-
 	//generate depth texture
 	glGenTextures(1, &depthTexture);
-	glBindTexture(GL_TEXTURE_2D, depthTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadowMapRes,
-		shadowMapRes, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, depthTexture);
+	for(int i = 0; i < 6; ++i)
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, shadowMapRes, shadowMapRes, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
 	glDrawBuffer(GL_NONE); // do not render color
 
@@ -81,6 +78,21 @@ bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 	delete[] data;	//release memory
 
 	glGenerateMipmap(GL_TEXTURE_3D);
+
+
+	//render from light source
+	/*
+	glm::mat4 viewMatrix = glm::lookAt(light->lightPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	glm::mat4 projectionMatrix = glm::ortho(-120.f, 120.f, -120.f, 120.f, -100.f, 100.f);
+	depthViewProjectionMatrix = projectionMatrix * viewMatrix;*/
+
+	glm::mat4 projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, light_near_plane, light_far_plane);
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
 
 	//projection
 	float size = GridWorldSize_;
@@ -118,13 +130,58 @@ void VCTRenderer::render(float deltaTime)
 	glm::mat4 viewMatrix = camera->GetViewMatrix();
 	glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera->Zoom), (float)scrWidth / (float)scrHeight, 0.1f, 1000.0f);
 
-	tracingShader->setMat4("projection", projectionMatrix);
-	tracingShader->setMat4("view", viewMatrix);
+	tracingShader->setVec3("CameraPosition", camera->Position);
+	//TODO: modify LightDirection to implement point light
+	tracingShader->setVec3("LightDirection", light->lightPos);
+	tracingShader->setFloat("VoxelGridWorldSize", GridWorldSize_);
+	tracingShader->setInt("VoxelDimensions", voxelDimensions_);
+	tracingShader->setFloat("ambientFactor", ambientFactor_);
+	tracingShader->setInt("shadowMapRes", shadowMapRes);
+
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, depthTexture);
+	tracingShader->setInt("ShadowMap", 5);
+	glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_3D, voxelTexture);
+	tracingShader->setInt("VoxelTexture", 6);
 
 	glm::mat4 modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.05f)), glm::vec3(0.0f, 0.0f, 0.0f));
-	tracingShader->setMat4("model", modelMatrix);
+	tracingShader->setMat4("ViewMatrix", viewMatrix);
+	tracingShader->setMat4("ModelMatrix", modelMatrix);
+	tracingShader->setMat4("ModelViewMatrix", viewMatrix * modelMatrix);
+	tracingShader->setMat4("ProjectionMatrix", projectionMatrix);
+	tracingShader->setFloat("far_plane", light_far_plane);
+	tracingShader->setVec3("LightPos", light->lightPos);
 
 	model->Draw(*tracingShader);
+}
+
+void VCTRenderer::depth_visualize(float deltaTime) {
+	glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GLAD_GL_NV_conservative_raster);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, scrWidth, scrHeight);
+	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	depthvisualizeShader->use();
+	glm::mat4 viewMatrix = camera->GetViewMatrix();
+	glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera->Zoom), (float)scrWidth / (float)scrHeight, 0.1f, 1000.0f);
+	glm::mat4 modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.05f)), glm::vec3(0.0f, 0.0f, 0.0f));
+
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, depthTexture);
+	depthvisualizeShader->setInt("ShadowMap", 5);
+
+	depthvisualizeShader->setMat4("ModelMatrix", modelMatrix);
+	depthvisualizeShader->setMat4("ModelViewMatrix", viewMatrix * modelMatrix);
+	depthvisualizeShader->setMat4("ProjectionMatrix", projectionMatrix);
+	depthvisualizeShader->setFloat("far_plane", light_far_plane);
+	depthvisualizeShader->setVec3("lightPos", light->lightPos);
+
+	model->Draw(*depthvisualizeShader);
 }
 
 void VCTRenderer::voxel_visualize(float deltaTime) {
@@ -163,6 +220,8 @@ void VCTRenderer::voxel_visualize(float deltaTime) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	model->Draw(*voxelvisualizeShader);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);	//FBO unbound
+	glViewport(0, 0, scrWidth, scrHeight);
 }
 
 void VCTRenderer::CalcDepthTexture() {
@@ -178,7 +237,11 @@ void VCTRenderer::CalcDepthTexture() {
 	//Write Depth information into depthFramebuffer
 	shadowShader->use();
 	glm::mat4 modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.05f)), glm::vec3(0.0f, 0.0f, 0.0f));
-	shadowShader->setMat4("ModelViewProjectionMatrix", depthViewProjectionMatrix * modelMatrix);
+	shadowShader->setMat4("ModelMatrix", modelMatrix);
+	for(int i = 0; i < 6; ++i)
+		shadowShader->setMat4(("shadowMatrices[" + std::to_string(i) + "]").c_str(), depthViewProjectionMatrix[i]);
+	shadowShader->setVec3("lightPos", light->lightPos);
+	shadowShader->setFloat("far_plane", light_far_plane);
 	model->Draw(*shadowShader);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);	//FBO unbound
 	glViewport(0, 0, scrWidth, scrHeight);
@@ -204,8 +267,8 @@ void VCTRenderer::CalcVoxelTexture() {
 	voxelizationShader->setMat4("ProjectionZ", projectionZ);
 
 	//bind Depth Texture
-	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_2D, depthTexture);
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, depthTexture);
 	voxelizationShader->setInt("ShadowMap", 5);
 
 	//set voxel resolution
@@ -219,7 +282,8 @@ void VCTRenderer::CalcVoxelTexture() {
 	
 	//Bind matrices
 	voxelizationShader->setMat4("ModelMatrix", modelMatrix);
-	voxelizationShader->setMat4("DepthModelViewProjectionMatrix", depthViewProjectionMatrix * modelMatrix);
+	voxelizationShader->setFloat("far_plane", light_far_plane);
+	voxelizationShader->setVec3("lightPos", light->lightPos);
 	voxelizationShader->setInt("shadowMapRes", shadowMapRes);
 
 	//render voxel texture

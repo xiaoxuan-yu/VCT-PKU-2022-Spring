@@ -7,12 +7,11 @@ uniform mat4 ModelMatrix;
 
 out VertexOut {
     vec2 texCoord;
-    vec4 depthCoord;    //depth texture coordinates for the vertex
+    vec3 fragPos;
 } ;
 
 void main() {
     gl_Position = ModelMatrix * vec4(worldPosition,1);
     texCoord = textureCoord;
-    depthCoord = DepthModelViewProjectionMatrix * vec4(worldPosition, 1);   
-	depthCoord.xyz = depthCoord.xyz * 0.5f + vec3(0.5f);    //transform x,y,z into [0,1]
+    fragPos = (ModelMatrix * vec4(worldPosition,1)).xyz;
 }

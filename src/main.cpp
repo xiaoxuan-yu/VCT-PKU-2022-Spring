@@ -47,8 +47,10 @@ int main()
         renderer.updateWindowSize(SCR_WIDTH, SCR_HEIGHT);
         processInput(InputController);
 
-        //renderer.render(deltaTime);
-        renderer.voxel_visualize(deltaTime);
+        renderer.render(deltaTime);
+        //renderer.voxel_visualize(deltaTime);
+        //renderer.depth_visualize(deltaTime);
+        
 
         m_window.swapBuffers();
     }
@@ -56,9 +58,10 @@ int main()
     glfwTerminate();
 
     return EXIT_SUCCESS;
-    //
-    return 0;
+    // return 0;
 }
+
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     if (firstMouse)
