@@ -3,8 +3,8 @@
 #include "Timer.h"
 #include "Window.h"
 
-int SCR_WIDTH = 1920;
-int SCR_HEIGHT = 1080;
+int SCR_WIDTH = 1280;
+int SCR_HEIGHT = 720;
 bool fullscreen = false;
 
 // timing
