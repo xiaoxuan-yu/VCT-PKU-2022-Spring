@@ -113,6 +113,8 @@ void processInput(GLFWInput *input)
         input->specular = !(input->specular);
     if (input->isKeyPressedOnce(GLFW_KEY_V))
         input->ambient = !(input->ambient);
+    if (input->isKeyPressedOnce(GLFW_KEY_SPACE))
+        input->mode = (input->mode + 1) % 3;
 
     glfwSetCursorPosCallback(input->getBoundWindow(), mouse_callback);
     glfwSetInputMode(input->getBoundWindow(), GLFW_CURSOR, mouseCursor ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);

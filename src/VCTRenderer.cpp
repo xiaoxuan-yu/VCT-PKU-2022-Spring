@@ -82,17 +82,9 @@ bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 	glm::mat4 projectionMatrix = glm::ortho(-120.f, 120.f, -120.f, 120.f, -100.f, 100.f);
 	depthViewProjectionMatrix = projectionMatrix * viewMatrix;*/
 
-	glm::mat4 projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, light_near_plane, light_far_plane);
-	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
-	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
-	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
-	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
-	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
-	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
-
 	//projection
 	float size = GridWorldSize_;
-	projectionMatrix = glm::ortho(-size * 0.5f, size * 0.5f, -size * 0.5f, size * 0.5f, size * 0.5f, size * 1.5f);
+	glm::mat4 projectionMatrix = glm::ortho(-size * 0.5f, size * 0.5f, -size * 0.5f, size * 0.5f, size * 0.5f, size * 1.5f);
 	projectionX = projectionMatrix * glm::lookAt(glm::vec3(size, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 	projectionY = projectionMatrix * glm::lookAt(glm::vec3(0, size, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, -1));
 	projectionZ = projectionMatrix * glm::lookAt(glm::vec3(0, 0, size), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
@@ -109,7 +101,33 @@ bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 
 void VCTRenderer::render(float deltaTime)
 {
-	//updateKeyPress();
+	if(input->mode==0){
+		scene_visualize(deltaTime);
+	}
+	else if(input->mode==1){
+		voxel_visualize(deltaTime);
+	}
+	else{
+		depth_visualize(deltaTime);
+	}
+
+	drawUI();
+
+	if (input->lPos[0] != input->lPos_last[0] || input->lPos[1] != input->lPos_last[1] || input->lPos[2] != input->lPos_last[2])
+	{
+		light->setPos(glm::vec3(input->lPos[0], input->lPos[1], input->lPos[2]));
+		CalcDepthTexture();
+		CalcVoxelTexture();
+		for (int i = 0; i < 3; ++i)
+		{
+			input->lPos_last[i] = input->lPos[i];
+		}
+	}
+
+}
+
+void VCTRenderer::scene_visualize(float deltaTime)
+{
 	
 	glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 	glEnable(GL_CULL_FACE);
@@ -160,7 +178,6 @@ void VCTRenderer::render(float deltaTime)
 
 	model->Draw(*tracingShader);
 
-	drawUI();
 }
 
 void VCTRenderer::depth_visualize(float deltaTime) {
@@ -245,6 +262,16 @@ void VCTRenderer::CalcDepthTexture() {
 	shadowShader->use();
 	glm::mat4 modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.05f)), glm::vec3(0.0f, 0.0f, 0.0f));
 	shadowShader->setMat4("ModelMatrix", modelMatrix);
+
+	glm::mat4 projectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, light_near_plane, light_far_plane);
+	depthViewProjectionMatrix.clear();
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
+	depthViewProjectionMatrix.push_back(projectionMatrix * glm::lookAt(light->lightPos, light->lightPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
+
 	for(int i = 0; i < 6; ++i)
 		shadowShader->setMat4(("shadowMatrices[" + std::to_string(i) + "]").c_str(), depthViewProjectionMatrix[i]);
 	shadowShader->setVec3("lightPos", light->lightPos);
@@ -255,6 +282,7 @@ void VCTRenderer::CalcDepthTexture() {
 }
 
 void VCTRenderer::CalcVoxelTexture() {
+
 	//disable face culling and depth test to render all triangle faces
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
@@ -321,10 +349,24 @@ void VCTRenderer::drawUI(){
 
 	//content
 	ImGui::Begin("Renderer");
-	ImGui::Checkbox("cone tracing(Z)", &(input->isConeTracing));
-	ImGui::Checkbox("diffuse(X)", &(input->diffuse));
-	ImGui::Checkbox("specular(C)", &(input->specular));
-	ImGui::Checkbox("ambient(V)", &(input->ambient));
+	ImGui::Text("mode:");
+	ImGui::SameLine();
+	ImGui::RadioButton("scene", &(input->mode), 0);
+	ImGui::SameLine();
+	ImGui::RadioButton("voxel", &(input->mode), 1);
+	ImGui::SameLine();
+	ImGui::RadioButton("depth", &(input->mode), 2);
+	if (input->mode == 0)
+	{
+		ImGui::Checkbox("cone tracing(Z)", &(input->isConeTracing));
+		ImGui::Checkbox("diffuse(X)", &(input->diffuse));
+		ImGui::Checkbox("specular(C)", &(input->specular));
+		ImGui::Checkbox("ambient(V)", &(input->ambient));
+
+		ImGui::Text("Light");
+		ImGui::InputFloat3("light pos", input->lPos);
+	}
+
 	ImGui::End();
 
 	//rendering

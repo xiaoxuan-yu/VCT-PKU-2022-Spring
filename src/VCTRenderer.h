@@ -67,6 +67,7 @@ public:
 	~VCTRenderer();
 	bool init(Camera *mCamera, Light *mLight);
 	void render(float deltaTime);
+	void scene_visualize(float deltaTime);
 	void voxel_visualize(float deltaTime);
 	void depth_visualize(float deltaTime);
 	void updateWindowSize(int width, int height) {

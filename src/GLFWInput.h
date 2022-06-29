@@ -92,4 +92,7 @@ public:
     bool diffuse = true;
     bool specular = true;
     bool ambient = true;
+    int mode = 0;
+    float lPos[3] = {0.f, 8.f, 0.f};
+    float lPos_last[3] = {0.f, 8.f, 0.f};
 };
