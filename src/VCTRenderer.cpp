@@ -1,7 +1,8 @@
 #include "VCTRenderer.h"
-VCTRenderer::VCTRenderer(GLFWWindow* aWindow)
+VCTRenderer::VCTRenderer(GLFWWindow* aWindow, GLFWInput* aInput)
 {
 	window = aWindow->getGLFWwindow();
+	input = aInput;
 	std::cout << "Creating VCT Render" << std::endl;
 	scrWidth = aWindow->getWidth();
 	scrHeight = aWindow->getHeight();
@@ -15,13 +16,8 @@ VCTRenderer::~VCTRenderer()
 bool VCTRenderer::init(Camera *mCamera, Light *mLight) {
 	std::cout << "Initializing VCT Render" << std::endl;
 	//imgui init
-	std::cout << "Loading UI ..." << std::endl;
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui::StyleColorsDark();
-	ImGui_ImplOpenGL3_Init("#version 450");
+	// std::cout << "Loading UI ..." << std::endl;
+	initUI();
 
 	camera = mCamera;
 	light = mLight;
@@ -135,7 +131,7 @@ void VCTRenderer::render(float deltaTime)
 	tracingShader->setVec3("LightDirection", light->lightPos);
 	tracingShader->setFloat("VoxelGridWorldSize", GridWorldSize_);
 	tracingShader->setInt("VoxelDimensions", voxelDimensions_);
-	tracingShader->setFloat("ambientFactor", ambientFactor_);
+	//tracingShader->setFloat("ambientFactor", ambientFactor_);
 	tracingShader->setInt("shadowMapRes", shadowMapRes);
 
 	glActiveTexture(GL_TEXTURE5);
@@ -153,7 +149,18 @@ void VCTRenderer::render(float deltaTime)
 	tracingShader->setFloat("far_plane", light_far_plane);
 	tracingShader->setVec3("LightPos", light->lightPos);
 
+	float coneTracingFactor = input->isConeTracing ? 1.f : 0.f;
+	tracingShader->setFloat("coneTracingFactor", coneTracingFactor);
+	float diffuseFactor = input->diffuse ? 1.f : 0.f;
+	tracingShader->setFloat("diffuseFactor", diffuseFactor);
+	float specularFactor = input->specular ? 1.f : 0.f;
+	tracingShader->setFloat("specularFactor", specularFactor);
+	float ambientFactor = input->ambient ? ambientFactor_ : 0.f;
+	tracingShader->setFloat("ambientFactor", ambientFactor);
+
 	model->Draw(*tracingShader);
+
+	drawUI();
 }
 
 void VCTRenderer::depth_visualize(float deltaTime) {
@@ -292,4 +299,35 @@ void VCTRenderer::CalcVoxelTexture() {
 	glBindTexture(GL_TEXTURE_3D, voxelTexture);
 	glGenerateMipmap(GL_TEXTURE_3D);
 	glViewport(0, 0, scrWidth, scrHeight);
+}
+
+void VCTRenderer::initUI(){
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+	(void)io;
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui::StyleColorsDark();
+	ImGui_ImplOpenGL3_Init("#version 450");
+}
+
+void VCTRenderer::drawUI(){
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+
+	ImGui::NewFrame();
+
+	//content
+	ImGui::Begin("Renderer");
+	ImGui::Checkbox("cone tracing(Z)", &(input->isConeTracing));
+	ImGui::Checkbox("diffuse(X)", &(input->diffuse));
+	ImGui::Checkbox("specular(C)", &(input->specular));
+	ImGui::Checkbox("ambient(V)", &(input->ambient));
+	ImGui::End();
+
+	//rendering
+	ImGui::Render();
+
+	//draw
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

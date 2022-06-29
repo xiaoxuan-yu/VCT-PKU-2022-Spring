@@ -20,11 +20,16 @@ uniform samplerCube ShadowMap;
 uniform int shadowMapRes;
 uniform vec3 LightPos;
 uniform float far_plane;
-uniform float ambientFactor;
+
 // Voxel Const
 uniform sampler3D VoxelTexture;
 uniform float VoxelGridWorldSize;   //150.f
 uniform int VoxelDimensions;    //512
+// Controls
+uniform float coneTracingFactor;
+uniform float diffuseFactor;
+uniform float specularFactor;
+uniform float ambientFactor;
 
 // Output
 out vec4 frag_color;
@@ -78,19 +83,19 @@ vec4 coneTrace(vec3 direction, float tanHalfAngle) {
     return vec4(color_, occlusion);
 }
 
-//ÓÉ¸ß¶ÈÍ¼¼ÆËã·¨Ïß
-mat3 TBN;//ÇÐÏß¿Õ¼ä±ä»»µ½ÊÀ½ç¿Õ¼ä
+//ï¿½É¸ß¶ï¿½Í¼ï¿½ï¿½ï¿½ã·¨ï¿½ï¿½
+mat3 TBN;//ï¿½ï¿½ï¿½ß¿Õ¼ï¿½ä»»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½
 vec3 calcBumpNormal() {
-    // ¼ÆËãx,yÖáÌÝ¶È
+    // ï¿½ï¿½ï¿½ï¿½x,yï¿½ï¿½ï¿½Ý¶ï¿½
     vec2 offset = vec2(1.0) / HeightTextureSize;
     float curr = texture(HeightTexture, UV).r;
     float diffX = texture(HeightTexture, UV + vec2(offset.x, 0.0)).r - curr;
     float diffY = texture(HeightTexture, UV + vec2(0.0, offset.y)).r - curr;
-    //²æ³Ë¼ÆËã·¨Ïß
+    //ï¿½ï¿½Ë¼ï¿½ï¿½ã·¨ï¿½ï¿½
     vec3 t1 = normalize(vec3(1,0,diffX));
     vec3 t2 = normalize(vec3(0,1,diffY));
     vec3 bumpNormal = normalize(cross(t1,t2));
-    //Ó³Éäµ½ÊÀ½ç¿Õ¼ä
+    //Ó³ï¿½äµ½ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½
     return normalize(TBN * bumpNormal);
 }
 
@@ -123,69 +128,69 @@ float countShadow(float bias)
 }
 
 void main() {
-    vec4 materialColor = texture(DiffuseTexture, UV);//²ÄÁÏÎÆÀíÑÕÉ«
-    float alpha = materialColor.a;//²ÄÁÏÍ¸Ã÷¶È
+    vec4 materialColor = texture(DiffuseTexture, UV);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«
+    float alpha = materialColor.a;//ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ï¿½ï¿½ï¿½
     float occlusion = 0.0;
     float specularOcclusion = 0.0;
     if(alpha < 0.5) {
         discard;
-    }//²»äÖÈ¾Í¸Ã÷ÎïÌå
+    }//ï¿½ï¿½ï¿½ï¿½È¾Í¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-    //TBN¾ØÕó
+    //TBNï¿½ï¿½ï¿½ï¿½
     TBN = inverse(transpose(mat3(WorldTangent, WorldBitangent, WorldNormal)));
 
-    vec3 N = calcBumpNormal();//´Ó¸ß¶ÈÌùÍ¼¼ÆËã·¨ÏòÁ¿
-    vec3 L = normalize(LightPos - WorldPosition); //¹âÔ´·½Ïò
-    vec3 E = normalize(WorldLookAtDir);//Ïà»úÏà¶Ô·½Ïò
+    vec3 N = calcBumpNormal();//ï¿½Ó¸ß¶ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ï¿½ã·¨ï¿½ï¿½ï¿½ï¿½
+    vec3 L = normalize(LightPos - WorldPosition); //ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½
+    vec3 E = normalize(WorldLookAtDir);//ï¿½ï¿½ï¿½ï¿½ï¿½Ô·ï¿½ï¿½ï¿½
    
-    // ¼ÆËã¿É¼û¶È
+    // ï¿½ï¿½ï¿½ï¿½É¼ï¿½ï¿½ï¿½
     float visibility = countShadow(0.002);
 
-//¼ÆËãÂþ·´Éä¹â
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     vec3 diffuseReflection;
     {
 
-        // Ö±½ÓÂþ·´Éä
-        float cosTheta = max(0, dot(N, L));//ÈëÉä¹âÏßºÍ·¨ÏßÓàÏÒÖµ
+        // Ö±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        float cosTheta = max(0, dot(N, L));//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ßºÍ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
         vec3 directDiffuseLight = vec3(visibility * cosTheta);
 
-        //¼ä½ÓÂþ·´Éä
+        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
        vec4 indirectDiffuseLight = vec4(0.f);
-        for(int i = 0; i < NUM_CONES; i++) //µþ¼ÓÁù¸ö×¶Ìå
+        for(int i = 0; i < NUM_CONES; i++) //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×¶ï¿½ï¿½
         {
             indirectDiffuseLight += coneWeights[i] * coneTrace(normalize(TBN * coneDirections[i]), 0.577);
         }
         occlusion = 1 - indirectDiffuseLight.a;
         indirectDiffuseLight = indirectDiffuseLight;
 
-        // Âþ·´ÉäÇóºÍ
-        diffuseReflection =  (directDiffuseLight + occlusion * indirectDiffuseLight.rgb ) * materialColor.rgb;
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        diffuseReflection =  diffuseFactor * (directDiffuseLight + coneTracingFactor * occlusion * indirectDiffuseLight.rgb ) * materialColor.rgb;
     }
     
-    // ¼ÆËã¾µÃæ·´Éä¹â
+    // ï¿½ï¿½ï¿½ã¾µï¿½æ·´ï¿½ï¿½ï¿½
     vec3 specularReflection;
     {
         vec4 specularColor = texture(SpecularTexture, UV);
         specularColor = length(specularColor.gb) > 0.0 ? specularColor : specularColor.rrra;
 
-        //Ö±½Ó¾µÃæ·´Éä
+        //Ö±ï¿½Ó¾ï¿½ï¿½æ·´ï¿½ï¿½
         vec3 reflectDir = normalize(reflect(-L, N));  
         float spec = pow(max(dot(E, reflectDir), 0.0), Shininess);
         vec3 directSpecularLight = vec3 (spec * visibility); 
         directSpecularLight = directSpecularLight;
        
-       //¼ä½Ó¾µÃæ·´Éä
+       //ï¿½ï¿½Ó¾ï¿½ï¿½æ·´ï¿½ï¿½
         vec3 inlightDir = normalize(reflect(-E,N));
         vec4 tracedSpecular = coneTrace(inlightDir, tan(0.3)); //  0.07 = 8 degrees angle
         tracedSpecular = tracedSpecular;
         specularOcclusion = 1 - tracedSpecular.a;
-        //¾µÃæ·´ÉäÇóºÍ
-        specularReflection =   (tracedSpecular.rgb+ specularOcclusion * directSpecularLight) * specularColor.rgb ;
+        //ï¿½ï¿½ï¿½æ·´ï¿½ï¿½ï¿½ï¿½ï¿½
+        specularReflection =   specularFactor * (coneTracingFactor * tracedSpecular.rgb+ specularOcclusion * directSpecularLight) * specularColor.rgb ;
        
     }
-    //»·¾³¹â
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     vec3 ambientLight = ambientFactor * materialColor.rgb * occlusion;
-    //¹â×ÜÁ¿ÇóºÍ
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     frag_color = vec4(ambientLight + diffuseReflection + specularReflection, alpha);
 
 }

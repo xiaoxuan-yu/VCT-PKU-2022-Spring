@@ -1,12 +1,12 @@
-# CMakeList.txt: ParticleSystem 的 CMake 项目，在此处包括源代码并定义
-# 项目特定的逻辑。
+# CMakeList.txt: ParticleSystem 锟斤拷 CMake 锟斤拷目锟斤拷锟节此达拷锟斤拷锟斤拷源锟斤拷锟诫并锟斤拷锟斤拷
+# 锟斤拷目锟截讹拷锟斤拷锟竭硷拷锟斤拷
 #
 cmake_minimum_required (VERSION 3.8)
 
-# 将源代码添加到此项目的可执行文件。
+# 锟斤拷源锟斤拷锟斤拷锟斤拷锟接碉拷锟斤拷锟斤拷目锟侥匡拷执锟斤拷锟侥硷拷锟斤拷
 add_executable (VCT "main.cpp" "Camera.h" "GLFWInput.h" "Light.h" "Mesh.h" "Model.h" "Shader.h" "Timer.h" "Window.h" "VCTRenderer.h" "VCTRenderer.cpp")
 target_link_libraries(VCT PRIVATE assimp::assimp glm::glm stb glfw glad imgui)
 target_include_directories(VCT PRIVATE ../third_party/glad/include ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_features(VCT PRIVATE cxx_std_17)
 
-# TODO: 如有需要，请添加测试并安装目标。
+# TODO: 锟斤拷锟斤拷锟斤拷要锟斤拷锟斤拷锟斤拷锟接诧拷锟皆诧拷锟斤拷装目锟疥。

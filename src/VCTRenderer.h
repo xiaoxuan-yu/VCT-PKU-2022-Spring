@@ -29,8 +29,8 @@ public:
 	GLFWwindow* window;
 	Camera* camera;
 	Model* model;
+	GLFWInput* input;
 
-	
 	int scrWidth, scrHeight;
 
 	//Voxelization Settings
@@ -62,7 +62,8 @@ public:
 
 	float ambientFactor_ = 0.2f;
 
-	VCTRenderer(GLFWWindow* aWindow);
+
+	VCTRenderer(GLFWWindow* aWindow, GLFWInput* aInput);
 	~VCTRenderer();
 	bool init(Camera *mCamera, Light *mLight);
 	void render(float deltaTime);
@@ -77,5 +78,8 @@ public:
 private:
 	void CalcVoxelTexture();
 	void CalcDepthTexture();
+
+	void initUI();
+	void drawUI();
 };
 
