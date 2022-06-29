@@ -98,7 +98,7 @@ void processInput(GLFWInput *input)
         camera.ProcessKeyboard(UP, deltaTime);
     if (input->isKeyPressed(GLFW_KEY_Q))
         camera.ProcessKeyboard(DOWN, deltaTime);
-    //�ո���Ƿ񱻰��£������л�����ģʽ
+    //Control是否被按下，用来切换输入模式
     if ((input->isKeyPressedOnce(GLFW_KEY_LEFT_CONTROL) || input->isKeyPressedOnce(GLFW_KEY_RIGHT_CONTROL)))
     {
         //controlPressed = true;

@@ -86,6 +86,7 @@ private:
     std::array<bool, 3> m_mouseButtonPressed{ false, false, false };
     std::unordered_set<unsigned int> m_keyPressed;
     GLFWwindow* m_window = nullptr;
+
 public:
     bool isConeTracing = true;
     bool diffuse = true;

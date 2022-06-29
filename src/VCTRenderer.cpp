@@ -191,8 +191,8 @@ void VCTRenderer::depth_visualize(float deltaTime) {
 	model->Draw(*depthvisualizeShader);
 }
 
-void VCTRenderer::voxel_visualize(float deltaTime) {
-
+//use ray-casting to implement visualization of voxels
+void VCTRenderer::voxel_visualize(float deltaTime) {	
 	glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 	glDisable(GLAD_GL_NV_conservative_raster);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -258,7 +258,9 @@ void VCTRenderer::CalcVoxelTexture() {
 	//disable face culling and depth test to render all triangle faces
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
-	glEnable(GLAD_GL_NV_conservative_raster); //enable hardware conservative rasterization, supported from Maxwell architecture on NVIDIA GPUs
+
+	//enable hardware conservative rasterization, supported from Maxwell architecture on NVIDIA GPUs
+	glEnable(GLAD_GL_NV_conservative_raster); 
 	
 	//init
 	glViewport(0, 0, voxelDimensions_, voxelDimensions_);
