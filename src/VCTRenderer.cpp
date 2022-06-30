@@ -105,10 +105,10 @@ void VCTRenderer::render(float deltaTime)
 		scene_visualize(deltaTime);
 	}
 	else if(input->mode==1){
-		voxel_visualize(deltaTime);
+		depth_visualize(deltaTime);
 	}
 	else{
-		depth_visualize(deltaTime);
+		scene_visualize(deltaTime);
 	}
 
 	drawUI();
@@ -353,9 +353,9 @@ void VCTRenderer::drawUI(){
 	ImGui::SameLine();
 	ImGui::RadioButton("scene", &(input->mode), 0);
 	ImGui::SameLine();
-	ImGui::RadioButton("voxel", &(input->mode), 1);
-	ImGui::SameLine();
-	ImGui::RadioButton("depth", &(input->mode), 2);
+	//ImGui::RadioButton("voxel", &(input->mode), 1);
+	//ImGui::SameLine();
+	ImGui::RadioButton("depth", &(input->mode), 1);
 	if (input->mode == 0)
 	{
 		ImGui::Checkbox("cone tracing(Z)", &(input->isConeTracing));

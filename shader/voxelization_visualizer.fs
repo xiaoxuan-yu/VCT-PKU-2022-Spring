@@ -23,7 +23,7 @@ void main() {
 	vec3 origin;
 	origin.x = cameraPosition.x / 240;
 	origin.y = cameraPosition.y / 240;
-	origin.z = cameraPosition.z / 200;
+	origin.z = cameraPosition.z / 240;
 	vec3 direction = worldPosition-origin;
 	const uint numberOfSteps = uint(INV_STEP_LENGTH * length(direction));
 	direction = normalize(direction);
