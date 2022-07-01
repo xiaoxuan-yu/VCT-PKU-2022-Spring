@@ -185,7 +185,7 @@ void main() {
         tracedSpecular = tracedSpecular;
         specularOcclusion = 1 - tracedSpecular.a;
         //镜面反射求和
-        specularReflection =   specularFactor * (coneTracingFactor * tracedSpecular.rgb+ specularOcclusion * directSpecularLight) * specularColor.rgb ;
+        specularReflection =   specularFactor * (coneTracingFactor * specularOcclusion * tracedSpecular.rgb+ directSpecularLight) * specularColor.rgb ;
        
     }
     //环境光
