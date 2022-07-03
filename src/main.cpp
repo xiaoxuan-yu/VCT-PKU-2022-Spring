@@ -47,8 +47,8 @@ int main()
         renderer.updateWindowSize(SCR_WIDTH, SCR_HEIGHT);
         processInput(&InputController);
 
-        renderer.render(deltaTime);
-        //renderer.voxel_visualize(deltaTime);
+        //renderer.render(deltaTime);
+        renderer.voxel_visualize(deltaTime);
         //renderer.depth_visualize(deltaTime);
         
 
