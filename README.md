@@ -44,5 +44,6 @@ or using cmale-gui on windows.
 - stb
 
 **Keep the executable file in the same directory of `shader` and `data` !**
+
 **NVIDIA GPUs are recommended to execute our program for some harware features are used.**
 
