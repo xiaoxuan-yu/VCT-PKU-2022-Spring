@@ -8,13 +8,13 @@ uniform mat4 ProjectionZ;
 
 in VertexOut{
     vec2 texCoord;
-    vec4 depthCoord;    //depth texture coordinates for the vertex
+	vec3 fragPos;
 } vertices[];
 
 out GeometryOut{
 	vec2 TexCoord;
 	flat int projectIndex;
-	vec4 DepthCoord; //do not change in gs
+	vec3 FragPos; //do not change in gs
 };
 
 int selectViewProject()
@@ -45,7 +45,7 @@ void main() {
 	mat4 projectionMatrix = projectIndex == 1 ? ProjectionX : projectIndex == 2 ? ProjectionY : ProjectionZ;
 	for (int i = 0; i < gl_in.length(); i++) {
 		TexCoord = vertices[i].texCoord;
-		DepthCoord = vertices[i].depthCoord;
+		FragPos = vertices[i].fragPos;
 		gl_Position = projectionMatrix * gl_in[i].gl_Position;  //Projection
 		EmitVertex();
 	}

@@ -1,5 +1,6 @@
 /out
 /.vs
+/build
 *.ilk
 *.pdb
 *.exp

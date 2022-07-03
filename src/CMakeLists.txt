@@ -1,12 +1,10 @@
-# CMakeList.txt: ParticleSystem µÄ CMake ÏîÄ¿£¬ÔÚ´Ë´¦°üÀ¨Ô´´úÂë²¢¶¨Òå
-# ÏîÄ¿ÌØ¶¨µÄÂß¼­¡£
-#
+# CMakeList.txt: ParticleSystem çš„ CMake é¡¹ç›®ï¼Œåœ¨æ­¤å¤„åŒ…æ‹¬æºä»£ç å¹¶å®šä¹‰
+
 cmake_minimum_required (VERSION 3.8)
 
-# ½«Ô´´úÂëÌí¼Óµ½´ËÏîÄ¿µÄ¿ÉÖ´ĞĞÎÄ¼ş¡£
+# å°†æºä»£ç æ·»åŠ åˆ°æ­¤é¡¹ç›®çš„å¯æ‰§è¡Œæ–‡ä»¶ã€‚
 add_executable (VCT "main.cpp" "Camera.h" "GLFWInput.h" "Light.h" "Mesh.h" "Model.h" "Shader.h" "Timer.h" "Window.h" "VCTRenderer.h" "VCTRenderer.cpp")
 target_link_libraries(VCT PRIVATE assimp::assimp glm::glm stb glfw glad imgui)
 target_include_directories(VCT PRIVATE ../third_party/glad/include ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_features(VCT PRIVATE cxx_std_17)
 
-# TODO: ÈçÓĞĞèÒª£¬ÇëÌí¼Ó²âÊÔ²¢°²×°Ä¿±ê¡£

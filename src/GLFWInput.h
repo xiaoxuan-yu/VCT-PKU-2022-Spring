@@ -87,4 +87,12 @@ private:
     std::unordered_set<unsigned int> m_keyPressed;
     GLFWwindow* m_window = nullptr;
 
+public:
+    bool isConeTracing = true;
+    bool diffuse = true;
+    bool specular = true;
+    bool ambient = true;
+    int mode = 0;
+    float lPos[3] = {0.f, 8.f, 0.f};
+    float lPos_last[3] = {0.f, 8.f, 0.f};
 };

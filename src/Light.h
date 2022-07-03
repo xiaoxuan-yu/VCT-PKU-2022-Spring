@@ -4,15 +4,16 @@
 class Light
 {
 public:
-	glm::vec3 lightPos = glm::vec3(1.0f, 4.0f, 1.0f);
+	int light_type = 0;
 	glm::vec3 lightColor = glm::vec3(0.0f);
-	void Light::setPos(glm::vec3 Pos)
-	{
-		lightPos = Pos;
-	}
-	void Light::setColor(glm::vec3 Color)
+	glm::vec3 lightPos = glm::vec3(0.0f, 8.0f, 0.0f);
+	void setColor(glm::vec3 Color)
 	{
 		lightColor = Color;
+	}
+	void setPos(glm::vec3 Pos)
+	{
+		lightPos = Pos;
 	}
 };
 

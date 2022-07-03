@@ -3,8 +3,8 @@
 #include "Timer.h"
 #include "Window.h"
 
-int SCR_WIDTH = 1920;
-int SCR_HEIGHT = 1080;
+int SCR_WIDTH = 1280;
+int SCR_HEIGHT = 720;
 bool fullscreen = false;
 
 // timing
@@ -20,7 +20,7 @@ Camera camera(glm::vec3(0.0f, 4.0f, 0.0f));
 Light light;
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void processInput(GLFWInput input);
+void processInput(GLFWInput *input);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
@@ -28,8 +28,8 @@ int main()
 {
     //initialize window, renderer, camera, light and input_controller
     GLFWWindow m_window(SCR_WIDTH, SCR_HEIGHT, "Voxel Cone Tracing", fullscreen);
-    VCTRenderer renderer(&m_window);
     GLFWInput InputController;
+    VCTRenderer renderer(&m_window, &InputController);
     InputController.bindInputtoWindow(m_window);
     renderer.init(&camera, &light);
     glfwSetFramebufferSizeCallback(m_window.getGLFWwindow(), framebuffer_size_callback);
@@ -45,10 +45,12 @@ int main()
         glfwGetWindowSize(m_window.getGLFWwindow(), &SCR_WIDTH, &SCR_HEIGHT);
         m_window.updateWindowSize(SCR_WIDTH, SCR_HEIGHT);
         renderer.updateWindowSize(SCR_WIDTH, SCR_HEIGHT);
-        processInput(InputController);
+        processInput(&InputController);
 
         //renderer.render(deltaTime);
         renderer.voxel_visualize(deltaTime);
+        //renderer.depth_visualize(deltaTime);
+        
 
         m_window.swapBuffers();
     }
@@ -56,9 +58,10 @@ int main()
     glfwTerminate();
 
     return EXIT_SUCCESS;
-    //
-    return 0;
+    // return 0;
 }
+
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     if (firstMouse)
@@ -78,31 +81,43 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 }
 
 
-void processInput(GLFWInput input)
+void processInput(GLFWInput *input)
 {
-    if (input.isKeyPressed(GLFW_KEY_ESCAPE))
-        glfwSetWindowShouldClose(input.getBoundWindow(), true);
+    if (input->isKeyPressed(GLFW_KEY_ESCAPE))
+        glfwSetWindowShouldClose(input->getBoundWindow(), true);
 
-    if (input.isKeyPressed(GLFW_KEY_W))
+    if (input->isKeyPressed(GLFW_KEY_W))
         camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (input.isKeyPressed(GLFW_KEY_S))
+    if (input->isKeyPressed(GLFW_KEY_S))
         camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (input.isKeyPressed(GLFW_KEY_A))
+    if (input->isKeyPressed(GLFW_KEY_A))
         camera.ProcessKeyboard(LEFT, deltaTime);
-    if (input.isKeyPressed(GLFW_KEY_D))
+    if (input->isKeyPressed(GLFW_KEY_D))
         camera.ProcessKeyboard(RIGHT, deltaTime);
-    if (input.isKeyPressed(GLFW_KEY_E))
+    if (input->isKeyPressed(GLFW_KEY_E))
         camera.ProcessKeyboard(UP, deltaTime);
-    if (input.isKeyPressed(GLFW_KEY_Q))
+    if (input->isKeyPressed(GLFW_KEY_Q))
         camera.ProcessKeyboard(DOWN, deltaTime);
-    //空格键是否被按下，用来切换输入模式
-    if ((input.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || input.isKeyPressed(GLFW_KEY_RIGHT_CONTROL)))
+    //Control鏄惁琚寜涓嬶紝鐢ㄦ潵鍒囨崲杈撳叆妯″紡
+    if ((input->isKeyPressedOnce(GLFW_KEY_LEFT_CONTROL) || input->isKeyPressedOnce(GLFW_KEY_RIGHT_CONTROL)))
     {
         //controlPressed = true;
         mouseCursor = !mouseCursor;
     }
-    glfwSetCursorPosCallback(input.getBoundWindow(), mouse_callback);
-    glfwSetInputMode(input.getBoundWindow(), GLFW_CURSOR, mouseCursor ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+    //renderer
+    if (input->isKeyPressedOnce(GLFW_KEY_Z))
+        input->isConeTracing = !(input->isConeTracing);
+    if (input->isKeyPressedOnce(GLFW_KEY_X))
+        input->diffuse = !(input->diffuse);
+    if (input->isKeyPressedOnce(GLFW_KEY_C))
+        input->specular = !(input->specular);
+    if (input->isKeyPressedOnce(GLFW_KEY_V))
+        input->ambient = !(input->ambient);
+    if (input->isKeyPressedOnce(GLFW_KEY_SPACE))
+        input->mode = (input->mode + 1) % 3;
+
+    glfwSetCursorPosCallback(input->getBoundWindow(), mouse_callback);
+    glfwSetInputMode(input->getBoundWindow(), GLFW_CURSOR, mouseCursor ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
